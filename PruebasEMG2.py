@@ -77,7 +77,7 @@ emgM = sosfiltfilt(bpSosButter, emgMyo)
 from scipy.signal import medfilt
 
 # Filtro no lineal (mediana)
-tamaño_ventana = int(0.005 * fs)  # 5 ms de ventana
+tamaño_ventana = int(0.003 * fs)  # 5 ms de ventana
 if tamaño_ventana % 2 == 0:
     tamaño_ventana += 1  # Debe ser impar
 
@@ -96,43 +96,40 @@ envolventeM = envRMS(emgM, fs = fs, largoVentana = 50)
 
 #Zonas de energía baja
 
-tantes = 0.03 #aprox 30ms antes de cada pico
-dt = 0.04
+tantes = [0.015, 0.02, 0.025, 0.03, 0.035, 0.04,0.045,0.05, 0.055] #aprox 30ms antes de cada pico
+dt = 0.015
 
 #altura = 0.5 * np.max(emgH)
-altura = 0.25
+altura = 0.15
 picos, _ = find_peaks(emgH, height=altura, distance=int(0.05*fs))
 
 tiemposLB = []
 valoresLB = []
 valoresLB2 = []
-valoresLB3 = []
 
 for pico in picos:
-    medio = int(pico - tantes * fs)
-    inicio = medio - int(dt * fs)
-    final = medio + int(dt * fs)
+    for t in tantes:
+        medio = int(pico - t * fs)
+        inicio = medio - int(dt * fs)
+        final = medio + int(dt * fs)
     
-    if inicio < 0 or final > len(emgH):
-        continue
-    promedio = np.mean(emgH[inicio:final])
-    mediana = np.median(emgH[inicio:final])
-    tiemposLB.append(medio)
-    valoresLB.append(promedio)
-    valoresLB2.append(mediana)
-    valoresLB3.append(medio)
+        if inicio < 0 or final > len(emgH):
+            continue
+        promedio = np.mean(emgH[inicio:final])
+        mediana = np.median(emgH[inicio:final])
     
-spline = interp1d(tiemposLB, valoresLB, kind='cubic', fill_value='extrapolate')
+        tiemposLB.append(medio)
+        valoresLB.append(promedio)
+        valoresLB2.append(mediana)
+    
+spline = interp1d(tiemposLB, valoresLB, kind='linear', fill_value='extrapolate')
 tiempoT = np.arange(len(emgH))
-spline2 = interp1d(tiemposLB, valoresLB2, kind='cubic', fill_value='extrapolate')
-spline3 = interp1d(tiemposLB, valoresLB3, kind='cubic', fill_value='extrapolate')
+spline2 = interp1d(tiemposLB, valoresLB2, kind='linear', fill_value='extrapolate')
 lineaBase = spline(tiempoT)
 lineaBase2 =spline2(tiempoT)
-lineaBase3 =spline3(tiempoT)
 
 emgFiltrada = emgHealthy - lineaBase
 emgFiltrada2 = emgHealthy - lineaBase2
-emgFiltrada3 = emgHealthy - lineaBase3
 
 t = np.arange(len(emgHealthy)) / fs
 plt.figure(figsize=(12, 5))
