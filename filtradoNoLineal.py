@@ -70,81 +70,181 @@ gains = 10**(gains / 20)
 bpSosButter = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq, ws=np.array([ws1, ws2]) / nyq, gpass = 1.0, gstop = 40., analog=False, ftype = 'butter', output = 'sos')
 
 emgiltfilt = sosfiltfilt(bpSosButter, emgHealthy)
-emgH = emgHealthy
+
 emgN = sosfiltfilt(bpSosButter, emgNeuro)
 emgM = sosfiltfilt(bpSosButter, emgMyo)
 
 from scipy.signal import medfilt
 
 # Filtro no lineal (mediana)
-tamaño_ventana = int(0.003 * fs)  # 5 ms de ventana
-if tamaño_ventana % 2 == 0:
-    tamaño_ventana += 1  # Debe ser impar
+tamaño_ventana = 201  # 5 ms de ventana
+bajas = medfilt(emgHealthy, kernel_size=tamaño_ventana)
+emgH = emgHealthy - bajas
 
-emgH = medfilt(emgHealthy, kernel_size=tamaño_ventana)
+# def envRMS(senal, fs, largoVentana):
+#     N = int(fs * largoVentana / 1000)
+#     senal = senal**2 #Energía
+#     rms = np.convolve(senal, np.ones(N)/N, mode = 'same') #Convolución entre una ventana rectangular y la senal
+#     return np.sqrt(rms)
 
-
-def envRMS(senal, fs, largoVentana):
-    N = int(fs * largoVentana / 1000)
-    senal = senal**2 #Energía
-    rms = np.convolve(senal, np.ones(N)/N, mode = 'same') #Convolución entre una ventana rectangular y la senal
-    return np.sqrt(rms)
-
-envolvente = envRMS(emgH, fs = fs, largoVentana = 50)
-envolventeN = envRMS(emgN, fs = fs, largoVentana = 50) 
-envolventeM = envRMS(emgM, fs = fs, largoVentana = 50) 
+# envolvente = envRMS(emgH, fs = fs, largoVentana = 50)
+# envolventeN = envRMS(emgN, fs = fs, largoVentana = 50) 
+# envolventeM = envRMS(emgM, fs = fs, largoVentana = 50) 
 
 #Zonas de energía baja
 
-tantes = [ 0.015, 0.02, 0.025, 0.03, 0.035, 0.04,0.045,0.05, 0.055] #aprox 30ms antes de cada pico
-dt = 0.015
+
 
 #altura = 0.5 * np.max(emgH)
-altura = 0.15
-picos, _ = find_peaks(emgH, height=altura, distance=int(0.05*fs))
+altura = 0.25
+picos, _ = find_peaks(emgHealthy, height=altura, distance=int(0.01*fs))
 
 tiemposLB = []
 valoresLB = []
 valoresLB2 = []
+valoresLB3 = []
 
-for pico in picos:
-    for t in tantes:
-        medio = int(pico - t * fs)
-        inicio = medio - int(dt * fs)
-        final = medio + int(dt * fs)
+for i in range(1, len(picos)):
+    pico = picos[i]
+    picoPrev = picos[i - 1]
+    frac = [0.2,0.5, 0.8]
+    distancia = pico - picoPrev
     
-        if inicio < 0 or final > len(emgH):
+    for p in frac:
+        punto = int(picoPrev + p * distancia)
+        mediaVentana = int(0.3 * distancia)
+        inicio = punto - mediaVentana
+        final = punto + mediaVentana
+
+  
+        if inicio < 0 or final > len(emgHealthy):
             continue
-        promedio = np.mean(emgH[inicio:final])
-        mediana = np.median(emgH[inicio:final])
-    
-        tiemposLB.append(medio)
+
+  
+        ventana = emgHealthy[inicio:final]
+        promedio = np.mean(ventana)
+        mediana = np.median(ventana)
+
+        tiemposLB.append(punto)
         valoresLB.append(promedio)
         valoresLB2.append(mediana)
+        valoresLB3.append(punto)  
+
+# for i in range(1, len(picos)):
+#     pico = picos[i]
+#     picoPrev = picos[i - 1]
+#     distancia = pico - picoPrev
     
-spline = interp1d(tiemposLB, valoresLB, kind='linear', fill_value='extrapolate')
+#     punto = int(picoPrev + 0.5 * distancia)
+#     mediaVentana = int(0.2 * distancia)
+#     inicio = punto - mediaVentana
+#     final = punto + mediaVentana
+
+  
+#     if inicio < 0 or final > len(emgH):
+#             continue
+
+  
+#     ventana = emgH[inicio:final]
+#     promedio = np.mean(ventana)
+#     mediana = np.median(ventana)
+
+#     tiemposLB.append(punto)
+#     valoresLB.append(promedio)
+#     valoresLB2.append(mediana)
+#     valoresLB3.append(punto)
+
+
 tiempoT = np.arange(len(emgH))
-spline2 = interp1d(tiemposLB, valoresLB2, kind='linear', fill_value='extrapolate')
-lineaBase = spline(tiempoT)
-lineaBase2 =spline2(tiempoT)
+splineProm = interp1d(tiemposLB, valoresLB, kind='cubic', fill_value='extrapolate')
+splineMed = interp1d(tiemposLB, valoresLB2, kind='cubic', fill_value='extrapolate')
 
-emgFiltrada = emgHealthy - lineaBase
-emgFiltrada2 = emgHealthy - lineaBase2
+lineaBase = splineProm(tiempoT)
+lineaBase2 = splineMed(tiempoT)
 
+# Corrección de la EMG
+# emgFiltrada = emgHealthy - lineaBase #usa el prom
+emgInter = emgHealthy - lineaBase2 #usa la mediana
+
+# Gráfica
 t = np.arange(len(emgHealthy)) / fs
 plt.figure(figsize=(12, 5))
+#plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
 plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
-#plt.plot(t, emgH, label='EMG original', alpha=0.5)
-#plt.plot(t, lineaBase, label='Línea de base estimada', color='green')
-#plt.plot(t, lineaBase2, label='Línea de base estimada2', color='blue')
-plt.plot(t, emgFiltrada, label='EMG corregida (promedio)', color='black')
-plt.plot(t, emgFiltrada2, label='EMG corregida (mediana)', color='grey')
+plt.plot(t, emgH, label='EMG filtrado de mediana', alpha=0.5)
+# plt.plot(t[valoresLB3], emgHealthy[valoresLB3], 'mx', label='Puntos medio entre picos', markersize=8)
+# plt.plot(t, lineaBase, label='Línea de base (promedio)', color='green')
+# plt.plot(t, lineaBase2, label='Línea de base (mediana)', color='blue')
+# plt.plot(t, emgFiltrada, label='EMG corregida (prom)', color='black')
+plt.plot(t, emgInter, label='EMG filtrado por interpolación', color='grey')
+
 plt.xlabel("Tiempo [s]")
 plt.ylabel("Amplitud")
-plt.title("Estimación de línea de base desde zonas isoeléctricas previas a PAUMs")
+plt.title("Filtrado por interpolación y filtro de mediana")
 plt.legend()
-plt.xlim(3.25,4.2)
-plt.ylim(-1,1)
+plt.xlim(0, 12)
+plt.ylim(-1, 2)
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+# from scipy.signal import welch
+
+# nperseg = len(emgHealthy) // 20
+# foriginal, welchOriginal = welch(emgHealthy, fs=fs, window='blackman',
+#                      nperseg= nperseg, noverlap=nperseg // 2, scaling='density')
+# finter, welchInterpolado = welch(emgInter, fs=fs, window='blackman',
+#                          nperseg= nperseg, noverlap= nperseg // 2, scaling='density')
+# fmed,welchMed = welch(emgH, fs=fs, window='blackman',
+#                          nperseg= nperseg, noverlap= nperseg // 2, scaling='density')
+
+
+# # fOrigN, welchOrigN, fFiltN, welchFiltN = PSDwelch(emgNeuro, emgFiltN)
+# # fOrigM, welchOrigM, fFiltM, welchFiltM = PSDwelch(emgMyo, emgFiltM)
+
+# nyq = fs // 2
+# ws1 = 1
+# wp1 = 20
+# wp2 = 480
+# ws2 = 600
+# ripple = 1
+# atenuacion = 40 
+# frecs = np.array([0.0, ws1, wp1, wp2, ws2, nyq]) / nyq
+# gains = np.array([-atenuacion, -atenuacion, -ripple, -ripple, -atenuacion, -atenuacion])
+# gains = 10**(gains / 20)
+
+# bpSosButter = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq, ws=np.array([ws1, ws2]) / nyq, gpass = 1.0, gstop = 40., analog=False, ftype = 'butter', output = 'sos')
+# emgIIR = sosfiltfilt(bpSosButter, emgHealthy)
+# fIIR, welchIIR = welch(emgIIR, fs=fs, window='blackman',
+#                          nperseg= nperseg, noverlap= nperseg // 2, scaling='density')
+# import pywt
+# wavelet = 'dmey'
+# niveles = 7
+# coeffs = pywt.wavedec(emgHealthy, wavelet, level=niveles)
+# # coeffs = [cA6, cD6, cD5, ..., cD1]
+
+# coeffs[0] = np.zeros_like(coeffs[0])      # cA6 aprox hasta 15
+# coeffs[-1] = np.zeros_like(coeffs[-1])    # cD1 (2000–1000 Hz)
+# coeffs[-2] = np.zeros_like(coeffs[-2])    # cD2 (1000–500 Hz)
+
+# filtroWavelet = pywt.waverec(coeffs, wavelet)
+# filtroWavelet = filtroWavelet[:len(emgHealthy)] #saca el padding interno
+# fWavelet, welchWavelet = welch(filtroWavelet, fs=fs, window='blackman',
+#                          nperseg= nperseg, noverlap= nperseg // 2, scaling='density')
+
+# plt.figure(figsize=(12, 4))
+# plt.plot(foriginal, 10 * np.log10(welchOriginal), label='Original', alpha=0.6)
+# plt.plot(fmed, 10 * np.log10(welchMed), label='Filtrada (Mediana)')
+# plt.plot(finter, 10 * np.log10(welchInterpolado),  label='Filtrada (Interpolación)')
+# plt.plot(fIIR, 10 * np.log10(welchIIR), label='Filtrada (LINEAL)')
+# # plt.plot(fWavelet, 10 * np.log10(welchWavelet), label='Filtrada (Wavelets)')
+
+# plt.title('Comparativa de filtros - EMG saludable')
+# plt.xlabel('Frecuencia [Hz]')
+# plt.ylabel('PSD [V²/Hz]')
+# plt.xlim([0, 800])
+# plt.ylim([-140, 0])
+# plt.grid(True, which='both')
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
