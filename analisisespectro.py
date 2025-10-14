@@ -21,6 +21,8 @@ emgHealthy = cargaVector("emg_healthy")
 emgNeuro = cargaVector("emg_neuropathy")
 emgMyo = cargaVector("emg_myopathy")
 
+    
+    
 
 from scipy.signal import butter, filtfilt
 
