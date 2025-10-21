@@ -74,79 +74,88 @@ ffsano3, bfrecsano3, ft_SanoV3 = psd(emgHealthy3, fs)
 ffmio3,   bfrecmio3,   ft_MioV3   = psd(emgMyo3,fs)
 ffneuro3, bfrecneuro3, ft_NeuroV3 = psd(emgNeuro3,fs)
 
+ffsano, bfrecsano, ft_SanoV = psd(emgHealthy, fs)
+ffmio,   bfrecmio,   ft_MioV   = psd(emgMyo,fs)
+ffneuro, bfrecneuro, ft_NeuroV = psd(emgNeuro,fs)
 
+plt.figure(figsize=(8,6))
+plt.plot(ffsano[bfrecsano], 10*np.log10(2*np.abs(ft_SanoV[bfrecsano])**2 + 1e-12), color='steelblue', lw=1.5, label='Sano')
+plt.plot(ffmio[bfrecmio], 10*np.log10(2*np.abs(ft_MioV[bfrecmio])**2 + 1e-12),color='darkorange', lw=1.5, label = 'Miopatía')
+plt.plot(ffneuro[bfrecneuro], 10*np.log10(2*np.abs(ft_NeuroV[bfrecneuro])**2 + 1e-12), color='seagreen', lw=1.5, label='Neuropatía')
+plt.xlabel('Frecuencia [Hz]'); plt.ylabel('PSD [dB re W/Hz]')
+plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
-axs[0].plot(ffsano1[bfrecsano1],  10*np.log10(2*np.abs(ft_SanoV1[bfrecsano1])**2 + 1e-12),
-            color='steelblue', lw=1.5)
-axs[0].set_title('Paciente Sano')
-axs[0].set_xlabel('Frecuencia [Hz]')
-axs[0].set_ylabel('Densidad de Potencia [dB]')
-axs[0].grid(True, alpha=0.3)
+# fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+# axs[0].plot(ffsano1[bfrecsano1],  10*np.log10(2*np.abs(ft_SanoV1[bfrecsano1])**2 + 1e-12),
+#             color='steelblue', lw=1.5)
+# axs[0].set_title('Paciente Sano')
+# axs[0].set_xlabel('Frecuencia [Hz]')
+# axs[0].set_ylabel('Densidad de Potencia [dB]')
+# axs[0].grid(True, alpha=0.3)
 
-axs[1].plot(ffmio1[bfrecmio1],    10*np.log10(2*np.abs(ft_MioV1[bfrecmio1])**2 + 1e-12),
-            color='darkorange', lw=1.5)
-axs[1].set_title('Miopatía')
-axs[1].set_xlabel('Frecuencia [Hz]')
-axs[1].grid(True, alpha=0.3)
+# axs[1].plot(ffmio1[bfrecmio1],    10*np.log10(2*np.abs(ft_MioV1[bfrecmio1])**2 + 1e-12),
+#             color='darkorange', lw=1.5)
+# axs[1].set_title('Miopatía')
+# axs[1].set_xlabel('Frecuencia [Hz]')
+# axs[1].grid(True, alpha=0.3)
 
-axs[2].plot(ffneuro1[bfrecneuro1], 10*np.log10(2*np.abs(ft_NeuroV1[bfrecneuro1])**2 + 1e-12),
-            color='seagreen', lw=1.5)
-axs[2].set_title('Neuropatía')
-axs[2].set_xlabel('Frecuencia [Hz]')
-axs[2].grid(True, alpha=0.3)
+# axs[2].plot(ffneuro1[bfrecneuro1], 10*np.log10(2*np.abs(ft_NeuroV1[bfrecneuro1])**2 + 1e-12),
+#             color='seagreen', lw=1.5)
+# axs[2].set_title('Neuropatía')
+# axs[2].set_xlabel('Frecuencia [Hz]')
+# axs[2].grid(True, alpha=0.3)
 
-fig.suptitle('Periodograma - Actividad Baja', fontsize=12)
-plt.tight_layout()
-plt.show()
+# fig.suptitle('Periodograma - Actividad Baja', fontsize=12)
+# plt.tight_layout()
+# plt.show()
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
-axs[0].plot(ffsano2[bfrecsano2],  10*np.log10(2*np.abs(ft_SanoV2[bfrecsano2])**2 + 1e-12),
-            color='steelblue', lw=1.5)
-axs[0].set_title('Paciente Sano')
-axs[0].set_xlabel('Frecuencia [Hz]')
-axs[0].set_ylabel('Densidad de Potencia [dB]')
-axs[0].grid(True, alpha=0.3)
+# fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+# axs[0].plot(ffsano2[bfrecsano2],  10*np.log10(2*np.abs(ft_SanoV2[bfrecsano2])**2 + 1e-12),
+#             color='steelblue', lw=1.5)
+# axs[0].set_title('Paciente Sano')
+# axs[0].set_xlabel('Frecuencia [Hz]')
+# axs[0].set_ylabel('Densidad de Potencia [dB]')
+# axs[0].grid(True, alpha=0.3)
 
-axs[1].plot(ffmio2[bfrecmio2],10*np.log10(2*np.abs(ft_MioV2[bfrecmio2])**2 + 1e-12),
-            color='darkorange', lw=1.5)
-axs[1].set_title('Miopatía')
-axs[1].set_xlabel('Frecuencia [Hz]')
-axs[1].grid(True, alpha=0.3)
+# axs[1].plot(ffmio2[bfrecmio2],10*np.log10(2*np.abs(ft_MioV2[bfrecmio2])**2 + 1e-12),
+#             color='darkorange', lw=1.5)
+# axs[1].set_title('Miopatía')
+# axs[1].set_xlabel('Frecuencia [Hz]')
+# axs[1].grid(True, alpha=0.3)
 
-axs[2].plot(ffneuro2[bfrecneuro2], 10*np.log10(2*np.abs(ft_NeuroV2[bfrecneuro2])**2 + 1e-12),
-            color='seagreen', lw=1.5)
-axs[2].set_title('Neuropatía')
-axs[2].set_xlabel('Frecuencia [Hz]')
-axs[2].grid(True, alpha=0.3)
+# axs[2].plot(ffneuro2[bfrecneuro2], 10*np.log10(2*np.abs(ft_NeuroV2[bfrecneuro2])**2 + 1e-12),
+#             color='seagreen', lw=1.5)
+# axs[2].set_title('Neuropatía')
+# axs[2].set_xlabel('Frecuencia [Hz]')
+# axs[2].grid(True, alpha=0.3)
 
-fig.suptitle('Periodograma - Actividad intensa', fontsize=12)
-plt.tight_layout()
-plt.show()
+# fig.suptitle('Periodograma - Actividad intensa', fontsize=12)
+# plt.tight_layout()
+# plt.show()
 
-fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
-axs[0].plot(ffsano3[bfrecsano3],  10*np.log10(2*np.abs(ft_SanoV3[bfrecsano3])**2 + 1e-12),
-            color='steelblue', lw=1.5)
-axs[0].set_title('Paciente Sano')
-axs[0].set_xlabel('Frecuencia [Hz]')
-axs[0].set_ylabel('Densidad de Potencia [dB]')
-axs[0].grid(True, alpha=0.3)
+# fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+# axs[0].plot(ffsano3[bfrecsano3],  10*np.log10(2*np.abs(ft_SanoV3[bfrecsano3])**2 + 1e-12),
+#             color='steelblue', lw=1.5)
+# axs[0].set_title('Paciente Sano')
+# axs[0].set_xlabel('Frecuencia [Hz]')
+# axs[0].set_ylabel('Densidad de Potencia [dB]')
+# axs[0].grid(True, alpha=0.3)
 
-axs[1].plot(ffmio3[bfrecmio3],10*np.log10(2*np.abs(ft_MioV3[bfrecmio3])**2 + 1e-12),
-            color='darkorange', lw=1.5)
-axs[1].set_title('Miopatía')
-axs[1].set_xlabel('Frecuencia [Hz]')
-axs[1].grid(True, alpha=0.3)
+# axs[1].plot(ffmio3[bfrecmio3],10*np.log10(2*np.abs(ft_MioV3[bfrecmio3])**2 + 1e-12),
+#             color='darkorange', lw=1.5)
+# axs[1].set_title('Miopatía')
+# axs[1].set_xlabel('Frecuencia [Hz]')
+# axs[1].grid(True, alpha=0.3)
 
-axs[2].plot(ffneuro3[bfrecneuro3], 10*np.log10(2*np.abs(ft_NeuroV3[bfrecneuro3])**2 + 1e-12),
-            color='seagreen', lw=1.5)
-axs[2].set_title('Neuropatía')
-axs[2].set_xlabel('Frecuencia [Hz]')
-axs[2].grid(True, alpha=0.3)
+# axs[2].plot(ffneuro3[bfrecneuro3], 10*np.log10(2*np.abs(ft_NeuroV3[bfrecneuro3])**2 + 1e-12),
+#             color='seagreen', lw=1.5)
+# axs[2].set_title('Neuropatía')
+# axs[2].set_xlabel('Frecuencia [Hz]')
+# axs[2].grid(True, alpha=0.3)
 
-fig.suptitle('Periodograma - Reposo', fontsize=12)
-plt.tight_layout()
-plt.show()
+# fig.suptitle('Periodograma - Reposo', fontsize=12)
+# plt.tight_layout()
+# plt.show()
 
 # def metricas_periodograma(ff, bfrec, ft, band=(20, 450)):
     
