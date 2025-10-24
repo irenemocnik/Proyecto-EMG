@@ -99,6 +99,37 @@ emgH = emgHealthy - bajas
 altura = 0.25
 picos, _ = find_peaks(emgHealthy, height=altura, distance=int(0.01*fs))
 
+
+
+tLB = []
+vLB = []
+vLB2 = []
+vLB3 = []
+
+for i in range(1, len(picos)):
+    pico = picos[i]
+    picoPrev = picos[i - 1]
+    distancia = pico - picoPrev
+    
+    punto = int(picoPrev + 0.3 * distancia)
+    mediaVentana = int(0.2 * distancia)
+    inicio = punto - mediaVentana
+    final = punto + mediaVentana
+
+  
+    if inicio < 0 or final > len(emgH):
+            continue
+
+  
+    ventana = emgH[inicio:final]
+    promedio = np.mean(ventana)
+    mediana = np.median(ventana)
+
+    tLB.append(punto)
+    vLB.append(promedio)
+    vLB2.append(mediana)
+    vLB3.append(punto)
+    
 tiemposLB = []
 valoresLB = []
 valoresLB2 = []
@@ -107,20 +138,20 @@ valoresLB3 = []
 for i in range(1, len(picos)):
     pico = picos[i]
     picoPrev = picos[i - 1]
-    frac = [0.2,0.5, 0.8]
+    frac = [0.2, 0.5, 0.8]
     distancia = pico - picoPrev
-    
+        
     for p in frac:
         punto = int(picoPrev + p * distancia)
         mediaVentana = int(0.3 * distancia)
         inicio = punto - mediaVentana
         final = punto + mediaVentana
 
-  
+      
         if inicio < 0 or final > len(emgHealthy):
             continue
 
-  
+      
         ventana = emgHealthy[inicio:final]
         promedio = np.mean(ventana)
         mediana = np.median(ventana)
@@ -130,32 +161,14 @@ for i in range(1, len(picos)):
         valoresLB2.append(mediana)
         valoresLB3.append(punto)  
 
-# for i in range(1, len(picos)):
-#     pico = picos[i]
-#     picoPrev = picos[i - 1]
-#     distancia = pico - picoPrev
-    
-#     punto = int(picoPrev + 0.5 * distancia)
-#     mediaVentana = int(0.2 * distancia)
-#     inicio = punto - mediaVentana
-#     final = punto + mediaVentana
-
-  
-#     if inicio < 0 or final > len(emgH):
-#             continue
-
-  
-#     ventana = emgH[inicio:final]
-#     promedio = np.mean(ventana)
-#     mediana = np.median(ventana)
-
-#     tiemposLB.append(punto)
-#     valoresLB.append(promedio)
-#     valoresLB2.append(mediana)
-#     valoresLB3.append(punto)
-
 
 tiempoT = np.arange(len(emgH))
+sProm = interp1d(tLB, vLB, kind='cubic', fill_value='extrapolate')
+sMed = interp1d(tLB, vLB2, kind='cubic', fill_value='extrapolate')
+
+lBase = sProm(tiempoT)
+lBase2 = sMed(tiempoT)
+
 splineProm = interp1d(tiemposLB, valoresLB, kind='cubic', fill_value='extrapolate')
 splineMed = interp1d(tiemposLB, valoresLB2, kind='cubic', fill_value='extrapolate')
 
@@ -166,23 +179,98 @@ lineaBase2 = splineMed(tiempoT)
 # emgFiltrada = emgHealthy - lineaBase #usa el prom
 emgInter = emgHealthy - lineaBase2 #usa la mediana
 
-# Gráfica
 t = np.arange(len(emgHealthy)) / fs
+
+# picos + señal
 plt.figure(figsize=(12, 5))
-#plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
+plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
+plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Detección de picos en señal EMG saludable")
+plt.legend()
+plt.xlim(3.4, 4.5)
+plt.ylim(-1, 2)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+#picos + señal + puntos 3 ms antes de cada pico
+
+plt.figure(figsize=(12, 5))
+plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
+plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
+plt.plot(t[vLB3], emgHealthy[vLB3], 'mx', label='Puntos 3 ms previos a cada pico', markersize=8)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Detección de picos en señal EMG saludable")
+plt.legend()
+plt.xlim(3.4, 4.5)
+plt.ylim(-1, 2)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+#picos, señal, puntos, lbmed, lbmean
+plt.figure(figsize=(12, 5))
+plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
+plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
+plt.plot(t[vLB3], emgHealthy[vLB3], 'mx', label='Puntos 3 ms previos a los picos', markersize=8)
+plt.plot(t, lBase, label='Línea de base (media)', color='green')
+plt.plot(t, lBase2, label='Línea de base (mediana)', color='blue')
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Línea de base por interpolación de media y mediana")
+plt.legend()
+plt.xlim(3.4, 4.5)
+plt.ylim(-1, 2)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+#picos, señal, mas puntos, mejor lbmed
+plt.figure(figsize=(12, 5))
+plt.plot(t[picos], emgHealthy[picos], 'rx', label='Picos detectados', markersize=8)
+plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
+plt.plot(t[valoresLB3], emgHealthy[valoresLB3], 'mx', label='Puntos 2, 5 y 8 ms previos a los picos', markersize=8)
+plt.plot(t, lineaBase2, label='Línea de base (mediana)', color='blue')
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Linea de Base por Interpolación de Mediana")
+plt.legend()
+plt.xlim(3.4, 4.5)
+plt.ylim(-1, 2)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+plt.figure(figsize=(12, 5))
 plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
 plt.plot(t, emgH, label='EMG filtrado de mediana', alpha=0.5)
-# plt.plot(t[valoresLB3], emgHealthy[valoresLB3], 'mx', label='Puntos medio entre picos', markersize=8)
-# plt.plot(t, lineaBase, label='Línea de base (promedio)', color='green')
-# plt.plot(t, lineaBase2, label='Línea de base (mediana)', color='blue')
-# plt.plot(t, emgFiltrada, label='EMG corregida (prom)', color='black')
-plt.plot(t, emgInter, label='EMG filtrado por interpolación', color='grey')
-
+# plt.plot(t, emgFiltrada, label='EMG corregida (MEDIA)', color='black')
+plt.plot(t, emgInter, label='EMG filtrado por Interpolación', color='grey')
 plt.xlabel("Tiempo [s]")
-plt.ylabel("Amplitud")
-plt.title("Filtrado por interpolación y filtro de mediana")
+plt.ylabel("Amplitud [mV]")
+plt.title("Filtro de mediana y filtro por interpolación")
 plt.legend()
-plt.xlim(0, 12)
+plt.xlim(3.8, 4.4)
+plt.ylim(-1, 2)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(12, 5))
+plt.plot(t, emgHealthy, label='EMG original', alpha=0.5)
+plt.plot(t, emgH, label='EMG filtrado de mediana', alpha=0.5)
+# plt.plot(t, emgFiltrada, label='EMG corregida (MEDIA)', color='black')
+plt.plot(t, emgInter, label='EMG filtrado por Interpolación', color='grey')
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Filtro de mediana y filtro por interpolación")
+plt.legend()
+plt.xlim(11.2, 12.0)
 plt.ylim(-1, 2)
 plt.grid(True)
 plt.tight_layout()

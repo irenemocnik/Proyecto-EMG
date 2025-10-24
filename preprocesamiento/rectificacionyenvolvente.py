@@ -68,7 +68,7 @@ from scipy.signal import butter, filtfilt
 
 nyq = fs / 2
 orden = 4
-fc = [5, 10]
+fc = [5, 10, 20, 40]
 envolventesLP = {}
 for f in fc:
     b, a = butter(orden, f / nyq, btype='low')
@@ -86,38 +86,61 @@ def envRMS(senal, fs, largoVentana):
 
 
 
-envolventePromH = filtroPromediador(rectH, fs = fs, largoVentana = 100)
-envolventePromN = filtroPromediador(rectN, fs = fs, largoVentana = 100)
+envolventePromH = filtroPromediador(rectH, fs = fs, largoVentana = 50)
+envolventePromN = filtroPromediador(rectN, fs = fs, largoVentana = 50)
 envolventePromM = filtroPromediador(rectM, fs = fs, largoVentana = 50)
 
-envolventeRMSH = envRMS(emgHealthyF, fs = fs, largoVentana = 400)
-envolventeRMSN = envRMS(emgNeuroF, fs = fs, largoVentana = 400)
-envolventeRMSM = envRMS(emgMyoF, fs = fs, largoVentana = 400)
+envolventeRMSH = envRMS(emgHealthyF, fs = fs, largoVentana = 80)
+envolventeRMSN = envRMS(emgNeuroF, fs = fs, largoVentana = 80)
+envolventeRMSM = envRMS(emgMyoF, fs = fs, largoVentana = 80)
 
 tN = np.arange(len(emgNeuro)) / fs
 tM = np.arange(len(emgMyo)) / fs
 tH = np.arange(len(emgHealthy)) / fs
-# plt.figure(figsize=(12, 4))
+plt.figure(figsize=(12, 4))
 
-# plt.plot(t, rectN, label='Paciente con Neuropatía',color='green', alpha=0.5)
-# plt.plot(t, rectM, label='Paciente con Miopatía',color='red', alpha=0.5)
+t = tH
+# # Envolvente ARV  movil
+# plt.figure()
 # plt.plot(t, rectH, label='Paciente saludable', alpha=0.8)
-# plt.plot(t,   envolventeRMSH, label='Envolvente (RMS)', color='red', linewidth=1)
-# plt.plot(t,envolventePromH, label='Envolvente (Promediador)', color='blue', linewidth=1)
-# for f in fc:
-    # plt.plot(t,envolventesLP[f], label=f'fc = {f} Hz')
+# plt.plot(t, envolventePromH, label='Envolvente (Promediador)', color='blue', linewidth=1)
 # plt.xlabel("Tiempo [s]")
-# plt.ylabel("Amplitud [V]")
+# plt.ylabel("Amplitud [mV]")
 # plt.title("Envolvente de EMG")
 # plt.legend()
 # plt.tight_layout()
 # plt.show()
 
+
+# # Envolventes LP a distintas fc
+# plt.figure()
+# plt.plot(t, rectH, label='Paciente saludable', alpha=0.8, color = 'steelblue')
+# plt.xlabel("Tiempo [s]")
+# plt.ylabel("Amplitud [mV]")
+# plt.title("Envolvente LP")
+# for f in fc:
+#     plt.plot(t,envolventesLP[f], label=f'fc = {f} Hz')
+# plt.legend()
+# plt.tight_layout()
+# plt.xlim(3.0,5.0)
+# plt.show()
+
+plt.figure(figsize=(12, 4))
+plt.plot(tH, rectH, label='Rectificación de onda completa',color='steelblue', alpha=0.5)
+plt.plot(tH, envolventeRMSH, label='Envolvente (RMS)', color='steelblue', linewidth=1)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Amplitud [mV]")
+plt.title("Visualización temporal - Paciente saludable")
+plt.legend()
+plt.tight_layout()
+plt.ylim(0,1)
+plt.show()
+
 plt.figure(figsize=(12, 4))
 plt.plot(tN, rectN, label='Rectificación de onda completa',color='green', alpha=0.5)
-plt.plot(tN, 4 * envolventeRMSN, label='Envolvente (RMS)',color='green')
+plt.plot(tN, envolventeRMSN, label='Envolvente (RMS)',color='green')
 plt.xlabel("Tiempo [s]")
-plt.ylabel("Amplitud [V]")
+plt.ylabel("Amplitud [mV]")
 plt.title("Visualización temporal - Paciente con neuropatía")
 plt.legend()
 plt.ylim(0,4)
@@ -126,23 +149,14 @@ plt.show()
 
 plt.figure(figsize=(12, 4))
 plt.plot(tM, rectM, label='Rectificación de onda completa',color='red', alpha=0.5)
-plt.plot(tM,  4 * envolventeRMSM, label='Envolvente (RMS)', color='red', linewidth=1)
+plt.plot(tM,  envolventeRMSM, label='Envolvente (RMS)', color='red', linewidth=1)
 plt.xlabel("Tiempo [s]")
-plt.ylabel("Amplitud [V]")
+plt.ylabel("Amplitud [mV]")
 plt.title("Visualización temporal - Paciente con miopatía")
 plt.legend()
-plt.ylim(0,4)
+plt.ylim(0,1)
 plt.tight_layout()
 plt.show()
 
-plt.figure(figsize=(12, 4))
-plt.plot(tH, rectH, label='Rectificación de onda completa',color='steelblue', alpha=0.5)
-plt.plot(tH, 4 * envolventeRMSH, label='Envolvente (RMS)', color='steelblue', linewidth=1)
-plt.xlabel("Tiempo [s]")
-plt.ylabel("Amplitud [V]")
-plt.title("Visualización temporal - Paciente saludable")
-plt.legend()
-plt.tight_layout()
-plt.ylim(0,4)
-plt.show()
+
 

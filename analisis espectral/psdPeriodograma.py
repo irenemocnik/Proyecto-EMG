@@ -8,6 +8,7 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 import wfdb
+from scipy.signal.windows import dpss
 
 def cargaVector (nombre):
     record = wfdb.rdrecord(nombre)
@@ -43,47 +44,108 @@ def psd(sig, fs):
     bfrec = ff <= fs/2 #hasta nyquist, por la simetría de la fft, lo demás es redundante.
     return ff, bfrec, ft_XVENTANA
 
-def recortar(sig, fs, t0, t1=None):
-    i0 = int(round(t0 * fs))
-    i1 = int(round(t1 * fs))
-    recortada = sig[i0:i1]
-    return recortada
+largoVentana = 1
+def ventanas(sig, fs, largoVentana = 1, paso = 0.5):
+    N = len(sig)
+    Nv = int(largoVentana * fs)#muestras x ventana
+    step = int(round(paso*largoVentana*fs))
+    inicios = np.arange(0, N - Nv + 1, step) 
+    W = sig[inicios[:, None] + np.arange(Nv)[None, :]] #Nv muestras seguidas despues de cadaa inicio
+    W = W - W.mean(axis = 1, keepdims = True)
+    return W, Nv, inicios
 
-emgHealthy1 = recortar(emgHealthy, fs, 0.0, 3.0)    
-emgHealthy2 = recortar(emgHealthy, fs, 3.0, 4.5)
-emgHealthy3 = recortar(emgHealthy, fs, 4.5, 12.0)   
+#aplicamos tapers DPSS en cada ventana, luego fft, potencia, promedio entre tapers, promedio entrre ventanas
 
-emgNeuro1 = recortar(emgNeuro, fs, 0.0, 11.0)
-emgNeuro2 = recortar(emgNeuro, fs, 11.0, 18.0)
-emgNeuro3 = recortar(emgNeuro, fs, 19.0, 30.0) 
-emgNeuro4 = recortar(emgNeuro, fs, 19.0, 35.0)
+    
+    
+def psdMultitaper(sig, fs, largoVentana = 1.0, paso = 0.5, df = 6 ):
+    W, nV, inicios = ventanas(sig, fs, largoVentana, paso) 
+    Nv = W.shape[1]
+    T = Nv / fs
+    
+    TW = 0.5 * T * df
+    K = max(1, int(np.floor(2*TW - 1)))  # cant de tapers buenos
+    tapers, avas = dpss(Nv, TW, Kmax=K, return_ratios=True)
+    taperPot = np.sum(tapers**2, axis=1)
+    wk = avas / avas.sum()  # pesos que suman 1
+    
+    # aplicar los tapers a las ventanas
+    Wtap = W[:, None, :] * tapers[None, :, :]
+    
+    # FFT -> potencia (densidad dos caras)
+    ft = np.abs(np.fft.fft(Wtap, axis=-1))**2 / (fs * taperPot[None, :, None])
+    
+    # promedio entre tapers -> PSD por ventana (nVentanas, Nv)
+    sumaProm = np.sum(ft * wk[None, :, None], axis=1)
+    
+    # promedio entre ventanas -> PSD global
+    Px = np.mean(sumaProm, axis=0) 
+    
+    
+    grilla = fs / Nv
+    ff = np.linspace(0.0, (Nv-1)*grilla, Nv)
+    bfrec = (ff <= fs/2)
+    ff = ff[bfrec]
+    Px = Px[bfrec]
+    Svent = sumaProm[:, bfrec]# nro de ventanas x frecuencias para espectrograma
+    tms = inicios / fs + (Nv / (2*fs))# centro de cada ventana en t
+    
+    return ff, Px, Svent, tms 
 
-emgMyo1 = recortar(emgMyo, fs, 0.0, 12.5)
-emgMyo2 = recortar(emgMyo, fs, 12.5, 15.0)     
-emgMyo3 = recortar(emgMyo, fs, 15.0, 25.0)  
+f_s1, P_s1, S_s1, t_s1 = psdMultitaper(emgHealthy, fs, largoVentana=1.0, paso=0.5, df=6.0)
+f_m1, P_m1, S_m1, t_m1 = psdMultitaper(emgMyo,     fs, largoVentana=1.0, paso=0.5, df=6.0)
+f_n1, P_n1, S_n1, t_n1 = psdMultitaper(emgNeuro,   fs, largoVentana=1.0, paso=0.5, df=6.0)
 
-ffsano1, bfrecsano1, ft_SanoV1 = psd(emgHealthy1, fs)
-ffmio1,   bfrecmio1,   ft_MioV1   = psd(emgMyo1, fs)
-ffneuro1, bfrecneuro1, ft_NeuroV1 = psd(emgNeuro1, fs)
+f_s2, bfrecs, S = psd(emgHealthy, fs)
+f_m2, bfrecm, M  = psd(emgMyo,     fs)
+f_n2, brecn, N  = psd(emgNeuro,   fs)
 
-ffsano2, bfrecsano2, ft_SanoV2 = psd(emgHealthy2, fs)
-ffmio2,   bfrecmio2,   ft_MioV2   = psd(emgMyo2, fs)
-ffneuro2, bfrecneuro2, ft_NeuroV2 = psd(emgNeuro2,fs)
-
-ffsano3, bfrecsano3, ft_SanoV3 = psd(emgHealthy3, fs)
-ffmio3,   bfrecmio3,   ft_MioV3   = psd(emgMyo3,fs)
-ffneuro3, bfrecneuro3, ft_NeuroV3 = psd(emgNeuro3,fs)
-
-ffsano, bfrecsano, ft_SanoV = psd(emgHealthy, fs)
-ffmio,   bfrecmio,   ft_MioV   = psd(emgMyo,fs)
-ffneuro, bfrecneuro, ft_NeuroV = psd(emgNeuro,fs)
 
 plt.figure(figsize=(8,6))
-plt.plot(ffsano[bfrecsano], 10*np.log10(2*np.abs(ft_SanoV[bfrecsano])**2 + 1e-12), color='steelblue', lw=1.5, label='Sano')
-plt.plot(ffmio[bfrecmio], 10*np.log10(2*np.abs(ft_MioV[bfrecmio])**2 + 1e-12),color='darkorange', lw=1.5, label = 'Miopatía')
-plt.plot(ffneuro[bfrecneuro], 10*np.log10(2*np.abs(ft_NeuroV[bfrecneuro])**2 + 1e-12), color='seagreen', lw=1.5, label='Neuropatía')
-plt.xlabel('Frecuencia [Hz]'); plt.ylabel('PSD [dB re W/Hz]')
+plt.plot(f_s2, 10*np.log10(np.abs(S)**2 + 1e-12), color ='steelblue', lw=1.5, label='Periodograma + Hamming')
+plt.plot(f_s1, 10*np.log10(P_s1 + 1e-12), color = 'blue', lw=1.5, label='Multitaper')
+plt.xlabel('Frecuencia [Hz]'); 
+plt.ylabel('PSD [dB]')
+plt.xlim(0,750)
 plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
+
+
+
+
+# def recortar(sig, fs, t0, t1=None):
+#     i0 = int(round(t0 * fs))
+#     i1 = int(round(t1 * fs))
+#     recortada = sig[i0:i1]
+#     return recortada
+
+# emgHealthy1 = recortar(emgHealthy, fs, 0.0, 3.0)    
+# emgHealthy2 = recortar(emgHealthy, fs, 3.0, 4.5)
+# emgHealthy3 = recortar(emgHealthy, fs, 4.5, 12.0)   
+
+# emgNeuro1 = recortar(emgNeuro, fs, 0.0, 11.0)
+# emgNeuro2 = recortar(emgNeuro, fs, 11.0, 18.0)
+# emgNeuro3 = recortar(emgNeuro, fs, 19.0, 30.0) 
+# emgNeuro4 = recortar(emgNeuro, fs, 19.0, 35.0)
+
+# emgMyo1 = recortar(emgMyo, fs, 0.0, 12.5)
+# emgMyo2 = recortar(emgMyo, fs, 12.5, 15.0)     
+# emgMyo3 = recortar(emgMyo, fs, 15.0, 25.0)  
+
+# ffsano1, bfrecsano1, ft_SanoV1 = psd(emgHealthy1, fs)
+# ffmio1,   bfrecmio1,   ft_MioV1   = psd(emgMyo1, fs)
+# ffneuro1, bfrecneuro1, ft_NeuroV1 = psd(emgNeuro1, fs)
+
+# ffsano2, bfrecsano2, ft_SanoV2 = psd(emgHealthy2, fs)
+# ffmio2,   bfrecmio2,   ft_MioV2   = psd(emgMyo2, fs)
+# ffneuro2, bfrecneuro2, ft_NeuroV2 = psd(emgNeuro2,fs)
+
+# ffsano3, bfrecsano3, ft_SanoV3 = psd(emgHealthy3, fs)
+# ffmio3,   bfrecmio3,   ft_MioV3   = psd(emgMyo3,fs)
+# ffneuro3, bfrecneuro3, ft_NeuroV3 = psd(emgNeuro3,fs)
+
+# ffsano, bfrecsano, ft_SanoV = psd(emgHealthy, fs)
+# ffmio,   bfrecmio,   ft_MioV   = psd(emgMyo,fs)
+# ffneuro, bfrecneuro, ft_NeuroV = psd(emgNeuro,fs)
 
 # fig, axs = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
 # axs[0].plot(ffsano1[bfrecsano1],  10*np.log10(2*np.abs(ft_SanoV1[bfrecsano1])**2 + 1e-12),
