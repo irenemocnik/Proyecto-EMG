@@ -66,12 +66,12 @@ TurnsAN = amplitud(emgNeuro)
 #segmentos iniciales
 
 emgH1 = emgHealthy[0:int(3*fs)]
-emgH2 = emgHealthy[int(3.2*fs): int(4.5*fs)]
+emgH2 = emgHealthy[int(3.5*fs): int(5.1*fs)]
 emgH3 = emgHealthy[int(5*fs): int(12*fs)]
 
 emgM1 = emgMyo[int(2*fs):int(12.5*fs)]
-emgM2 = emgMyo[int(12.5*fs): int(15*fs)]
-emgM3 = pegada[int(15*fs): int(22*fs)]
+emgM2 = emgMyo[int(12*fs): int(18*fs)]
+emgM3 = emgMyo[int(21*fs): int(24*fs)]
 
 emgN1 = emgNeuro[0:int(10*fs)]
 emgN2 = emgNeuro[int(12.5*fs): int(17*fs)]
